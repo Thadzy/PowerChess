@@ -1,8 +1,8 @@
-#include "PowerChess/Core/King.h"
-#include "PowerChess/Core/Board.h"
+#include "Header/Core/King.h"
+#include "Header/Core/Board.h"
 #include <cmath> // For abs
 
-namespace PowerChess {
+namespace Hardchess {
 
     King::King(Color c, Position pos) : Piece(c, PieceType::KING, pos) {}
 
@@ -44,4 +44,4 @@ namespace PowerChess {
         return false;
     }
 
-} // namespace PowerChess
+} // namespace Hardchess

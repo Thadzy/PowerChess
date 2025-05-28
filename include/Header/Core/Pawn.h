@@ -1,9 +1,9 @@
-#ifndef POWERCHESS_CORE_PAWN_H
+#ifndef HARDCHESS_CORE_PAWN_H
 #define POWERCHESS_CORE_PAWN_H
 
 #include "PowerChess/Core/Piece.h"
 
-namespace PowerChess {
+namespace HardChess {
 
     class Pawn : public Piece {
       public:

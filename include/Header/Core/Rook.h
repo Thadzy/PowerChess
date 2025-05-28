@@ -1,9 +1,9 @@
-#ifndef POWERCHESS_CORE_ROOK_H
-#define POWERCHESS_CORE_ROOK_H
+#ifndef HARDCHESS_CORE_ROOK_H
+#define HARDCHESS_CORE_ROOK_H
 
-#include "PowerChess/Core/Piece.h"
+#include "HardChess/Core/Piece.h"
 
-namespace PowerChess {
+namespace HardChess {
 
     class Rook : public Piece {
       public:

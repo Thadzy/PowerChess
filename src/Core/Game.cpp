@@ -1,9 +1,9 @@
-#include "PowerChess/Core/Game.h"
+#include "Header/Core/Game.h"
 #include <iostream>
 #include <cctype>
 #include <limits>
 
-namespace PowerChess {
+namespace Hardchess {
 
 Game::Game(Player* p1, Player* p2, ConsoleUI& consoleUi)
     : player1(p1), player2(p2), currentPlayer(p1), ui(consoleUi), roundState(RoundState::ONGOING) {}
@@ -159,4 +159,4 @@ Player* Game::getRoundWinner() const {
     return nullptr;
 }
 
-} // namespace PowerChess
+} // namespace Hardchess

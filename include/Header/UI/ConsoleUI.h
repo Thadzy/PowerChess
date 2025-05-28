@@ -3,28 +3,17 @@
 
 #include <string>
 #include <vector>
-#include <memory> // Required for std::unique_ptr
+#include <memory>
 
-// Include CommonTypes.h to define Position and PieceType fully.
-// Why: When a type like 'Position' is passed by value (e.g., 'Position pos'),
-// the compiler needs to know its exact size and structure to properly
-// allocate memory and copy data. Forward declarations are only sufficient
-// for pointers or references, where the compiler only needs to know the type exists.
 #include "PowerChess/Core/CommonTypes.h" 
 
-// Forward declarations for classes that are only used via pointers/references
-// and whose full definitions are not needed in this header for compilation.
-namespace PowerChess {
+namespace HardChess {
     class Board;    
     class Player;   
     class PowerUp;  
-    // PieceType is now included from CommonTypes.h, so no need for forward declaration here.
-    // However, if PieceType was a simple 'enum' (not 'enum class') and not used by value,
-    // a forward declaration 'enum PieceType;' might still be valid in some cases,
-    // but including its definition is generally safer and clearer.
 }
 
-namespace PowerChess {
+namespace HardChess {
 
     class ConsoleUI {
     public:
@@ -53,13 +42,6 @@ namespace PowerChess {
         std::string getSaveFileName() const;
         std::string getLoadFileName() const;
         
-        // Power-up selection
-        // Returns the chosen PowerUp (caller takes ownership via unique_ptr) or nullptr if none chosen.
-        // std::unique_ptr ensures proper memory management.
-        // std::unique_ptr<PowerUp> selectPowerUp(Player& player, 
-        //                                        const std::vector<std::unique_ptr<PowerUp>>& availablePowerUpsFactory);
-
-        // Helper function: 'Position' is now recognized due to the include of CommonTypes.h
         std::string formatPosition(Position pos) const; 
 
         // Utility functions

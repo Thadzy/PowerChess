@@ -1,11 +1,11 @@
 #ifndef POWERCHESS_CORE_PLAYER_H
 #define POWERCHESS_CORE_PLAYER_H
 
-#include "PowerChess/Core/CommonTypes.h"
+#include "Header/Core/CommonTypes.h"
 #include <string>
 #include <memory> // For std::unique_ptr
 
-namespace PowerChess
+namespace HardChess
 {
 
   class Player
@@ -15,21 +15,24 @@ namespace PowerChess
     Color color;
     int hearts;
     int score; // Rounds won
-    // std::unique_ptr<PowerUp> activePowerUp;
 
   public:
+    // Constructor to initialize a Player with name and color
     Player(const std::string &name, Color c);
 
+    // Deleted copy constructor and assignment operator to prevent copying
     const std::string &getName() const { return name; }
     Color getColor() const { return color; }
     int getHearts() const { return hearts; }
     int getScore() const { return score; }
 
+    // Function to get the color as a string
     std::string getColorString() const
     {
       return (color == Color::WHITE) ? "White" : "Black";
     }
 
+    // Function to display player information
     void loseHeart();
     void incrementScore();
     void resetForNewMatch();
@@ -38,9 +41,6 @@ namespace PowerChess
     void setHearts(int hearts) { this->hearts = hearts; }
     void setScore(int score) { this->score = score; }
 
-    // void setActivePowerUp(std::unique_ptr<PowerUp> pu);
-    // bool hasActivePowerUp() const;
-    // std::unique_ptr<PowerUp> consumeActivePowerUp(); // Gets and clears the power-up
   };
 
 } // namespace PowerChess

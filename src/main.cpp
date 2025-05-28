@@ -1,13 +1,13 @@
-#include "PowerChess/Core/Game.h"
-#include "PowerChess/Core/Player.h"
-#include "PowerChess/UI/ConsoleUI.h"
+#include "Header/Core/Game.h"
+#include "Header/Core/Player.h"
+#include "Header/UI/ConsoleUI.h"
 #include <iostream>
 #include <vector>
 #include <memory>
 #include <fstream>
 #include <string>
 
-using namespace PowerChess;
+using namespace HardChess;
 
 // Function prototypes
 void playMatch(ConsoleUI& ui, Player& player1, Player& player2, int roundsToWinMatch);
@@ -150,7 +150,7 @@ int main() {
 void playMatch(ConsoleUI& ui, Player& player1, Player& player2, int roundsToWinMatch) {
     int currentRoundNumber = 1;
     
-    ui.displayMessage("🎯 Welcome to PowerChess! 🎯");
+    ui.displayMessage("🎯 Welcome to HardChess! 🎯");
     ui.displayMessage("Win " + std::to_string(roundsToWinMatch) + " rounds to win the match. Each player has 3 hearts. ❤️");
 
     while (player1.getScore() < roundsToWinMatch && player2.getScore() < roundsToWinMatch &&
@@ -224,7 +224,7 @@ bool saveGame(ConsoleUI& ui, const Player& player1, const Player& player2, int c
     }
     
     // Save game state in a simple format
-    file << "PowerChess Save File v1.0\n";
+    file << "HardChess Save File v1.0\n";
     file << player1.getName() << "\n";
     file << player1.getScore() << "\n";
     file << player1.getHearts() << "\n";
@@ -249,7 +249,7 @@ bool loadGame(ConsoleUI& ui, Player& player1, Player& player2, int& currentRound
     std::string header;
     std::getline(file, header);
     
-    if (header != "PowerChess Save File v1.0") {
+    if (header != "HardChess Save File v1.0") {
         file.close();
         return false;
     }

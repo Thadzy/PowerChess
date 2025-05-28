@@ -1,9 +1,9 @@
-#ifndef POWERCHESS_CORE_QUEEN_H
-#define POWERCHESS_CORE_QUEEN_H
+#ifndef HARDCHESS_CORE_QUEEN_H
+#define HARDCHESS_CORE_QUEEN_H
 
-#include "PowerChess/Core/Piece.h"
+#include "Header/Core/Piece.h"
 
-namespace PowerChess {
+namespace HardChess {
 
     class Queen : public Piece {
       public:

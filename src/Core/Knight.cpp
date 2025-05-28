@@ -1,8 +1,8 @@
-#include "PowerChess/Core/Knight.h"
-#include "PowerChess/Core/Board.h" // For board.getPiece
+#include "Header/Core/Knight.h"
+#include "Header/Core/Board.h" // For board.getPiece
 #include <cmath> // For abs
 
-namespace PowerChess {
+namespace Hardchess {
 
     Knight::Knight(Color c, Position pos) : Piece(c, PieceType::KNIGHT, pos), boostedForNextMove(false) {}
 
@@ -41,4 +41,4 @@ namespace PowerChess {
         // For boosted king-like move, it's only 1 square, so no path check needed either.
     }
 
-} // namespace PowerChess
+} // namespace Hardchess

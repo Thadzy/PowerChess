@@ -1,7 +1,7 @@
-#include "PowerChess/Core/Pawn.h"
-#include "PowerChess/Core/Board.h" // For board.getPiece()
+#include "Header/Core/Pawn.h"
+#include "Header/Core/Board.h" // For board.getPiece()
 
-namespace PowerChess {
+namespace Hardchess {
 
     Pawn::Pawn(Color c, Position pos) : Piece(c, PieceType::PAWN, pos) {}
 
@@ -50,4 +50,4 @@ namespace PowerChess {
         return false;
     }
 
-} // namespace PowerChess
+} // namespace Hardchess

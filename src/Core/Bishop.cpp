@@ -1,6 +1,5 @@
-// filepath: [Bishop.cpp](http://_vscodecontentref_/2)
-#include "PowerChess/Core/Bishop.h"
-#include "PowerChess/Core/Board.h"
+#include "Header/Core/Bishop.h"
+#include "Header/Core/Board.h"
 
 namespace PowerChess {
 

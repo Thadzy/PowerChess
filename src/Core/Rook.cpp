@@ -1,7 +1,7 @@
-#include "PowerChess/Core/Rook.h"
-#include "PowerChess/Core/Board.h"
+#include "Header/Core/Rook.h"
+#include "Header/Core/Board.h"
 
-namespace PowerChess {
+namespace Hardchess {
 
     Rook::Rook(Color c, Position pos) : Piece(c, PieceType::ROOK, pos) {}
 
@@ -30,4 +30,4 @@ namespace PowerChess {
         return false;
     }
 
-} // namespace PowerChess
+} // namespace Hardchess

@@ -1,7 +1,7 @@
-#include "PowerChess/Core/Piece.h"
-#include "PowerChess/Core/Board.h" // Required for Board reference in getPossibleMoves
+#include "Header/Core/Piece.h"
+#include "Header/Core/Board.h" // Required for Board reference in getPossibleMoves
 
-namespace PowerChess {
+namespace Hardchess {
 
     std::vector<Position> Piece::getPossibleMoves(Position start, const Board& board) const {
         std::vector<Position> moves;
@@ -16,4 +16,4 @@ namespace PowerChess {
         return moves;
     }
 
-} // namespace PowerChess
+} // namespace Hardchess

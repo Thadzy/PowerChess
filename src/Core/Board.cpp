@@ -1,15 +1,15 @@
-#include "PowerChess/Core/Board.h"
-#include "PowerChess/UI/ConsoleUI.h"
-#include "PowerChess/Core/Pawn.h"
-#include "PowerChess/Core/Rook.h"
-#include "PowerChess/Core/Knight.h"
-#include "PowerChess/Core/Bishop.h"
-#include "PowerChess/Core/Queen.h"
-#include "PowerChess/Core/King.h"
+#include "Header/Core/Board.h"
+#include "Header/UI/ConsoleUI.h"
+#include "Header/Core/Pawn.h"
+#include "Header/Core/Rook.h"
+#include "Header/Core/Knight.h"
+#include "Header/Core/Bishop.h"
+#include "Header/Core/Queen.h"
+#include "Header/Core/King.h"
 #include <iostream>
 #include <algorithm>
 
-namespace PowerChess
+namespace Hardchess
 {
 
     Board::Board() : grid(8)
@@ -362,4 +362,4 @@ namespace PowerChess
         return true;
     }
 
-} // namespace PowerChess
+} // namespace Hardchess
