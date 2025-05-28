@@ -1,226 +1,162 @@
 #include "PowerChess/Core/Game.h"
-#include "PowerChess/Core/Knight.h" // For resetting Knight boost
 #include <iostream>
-#include <algorithm> // for std::all_of, std::none_of if needed
+#include <cctype>
+#include <limits>
 
 namespace PowerChess {
 
-    Game::Game(Player* p1, Player* p2, ConsoleUI& consoleUi)
-        : player1(p1), player2(p2), currentPlayer(nullptr), ui(consoleUi), roundState(RoundState::ONGOING) {
-        // Board is default constructed and initializes itself
-    }
+Game::Game(Player* p1, Player* p2, ConsoleUI& consoleUi)
+    : player1(p1), player2(p2), currentPlayer(p1), ui(consoleUi), roundState(RoundState::ONGOING) {}
 
-    void Game::startRound() {
-        board.initializeBoard(); // Reset board to starting positions
-        currentPlayer = player1; // White always starts
-        roundState = RoundState::ONGOING;
-        ui.displayMessage("Round started. " + currentPlayer->getName() + " (" + currentPlayer->getColorString() + ") to move.");
+void Game::startRound() {
+    board.initializeBoard();
+    currentPlayer = player1; // White starts
+    roundState = RoundState::ONGOING;
+    ui.displayBoard(board);
+}
 
-        // Apply power-ups at the start of the round
-        auto apply_powerup_if_any = [&](Player* p) {
-            if (p->hasActivePowerUp()) {
-                std::unique_ptr<PowerUp> pu = p->consumeActivePowerUp();
-                ui.displayMessage(p->getName() + " is activating " + pu->getName() + "!");
-                pu->apply(*p, board, ui); // Pass ui for interaction (e.g. selecting Knight)
-            }
-        };
-        apply_powerup_if_any(player1);
-        apply_powerup_if_any(player2);
+void Game::playTurn() {
+    if (isRoundOver()) return;
 
-        ui.displayBoard(board); // Display initial board
-    }
+    ui.displayBoard(board);
+    ui.displayMessage(currentPlayer->getName() + "'s turn (" + (currentPlayer == player1 ? "White" : "Black") + ")");
 
-    Position Game::parsePosition(const std::string& s) const {
-        if (s.length() < 2) return Position(-1, -1);
-        char file = s[0];
-        char rank = s[1];
+    // Get move input
+    std::string startStr, endStr;
+    Position start, end;
+    PieceType promotionType = PieceType::NONE;
 
-        if (file < 'a' || file > 'h' || rank < '1' || rank > '8') {
-            return Position(-1, -1);
-        }
-        // Board: (0,0) is a8, (7,7) is h1
-        // Input: a1 ... h8
-        // 'a' maps to col 0, 'h' to col 7
-        // '1' maps to row 7, '8' to row 0
-        return Position(7 - (rank - '1'), file - 'a');
-    }
-    
-    bool Game::makeMove(Position start, Position end, PieceType promotionType) {
-        if (!start.isValid() || !end.isValid()) {
-            ui.displayMessage("Invalid position format or out of bounds.");
-            return false;
-        }
+    while (true) {
+        ui.displayMessage("Enter move (e.g., e2 e4): ");
+        std::cin >> startStr >> endStr;
+        start = parsePosition(startStr);
+        end = parsePosition(endStr);
 
-        Piece* pieceToMove = board.getPiecePtr(start);
-        if (!pieceToMove) {
-            ui.displayMessage("No piece at starting position " + ui.formatPosition(start) + ".");
-            return false;
-        }
-
-        if (pieceToMove->getColor() != currentPlayer->getColor()) {
-            ui.displayMessage("Cannot move opponent's piece.");
-            return false;
-        }
-        
-        // Check if the piece-specific move is valid (ignoring self-check for now)
-        if (!pieceToMove->isValidMove(start, end, board)) {
-             ui.displayMessage("Piece at " + ui.formatPosition(start) + " cannot move to " + ui.formatPosition(end) + " according to its rules.");
-            return false;
-        }
-
-        // Simulate move to check for self-check
-        Board tempBoard = board; // Use copy constructor
-        std::unique_ptr<Piece> tempCaptured = tempBoard.movePiece(start, end); // Simulate on temp board
-        
-        if (tempBoard.isKingInCheck(currentPlayer->getColor())) {
-            ui.displayMessage("Invalid move: Your King would be in check.");
-            return false; // Move is illegal as it leaves King in check
-        }
-
-        // If all checks pass, make the move on the actual board
-        std::unique_ptr<Piece> capturedPiece = board.movePiece(start, end);
-        if (capturedPiece) {
-            ui.displayMessage(capturedPiece->getColorString() + " " + capturedPiece->getName() + " captured at " + ui.formatPosition(end));
-        }
-
-        // Handle Knight Boost reset
-        Piece* movedPiecePtr = board.getPiecePtr(end); // Get the piece that just moved
-        if (movedPiecePtr && movedPiecePtr->getType() == PieceType::KNIGHT) {
-            Knight* knight = dynamic_cast<Knight*>(movedPiecePtr);
-            if (knight && knight->isBoostedForNextMove()) {
-                knight->setBoostedForNextMove(false);
-                ui.displayMessage(knight->getColorString() + " Knight's boost has been used.");
+        // Promotion (optional)
+        if (board.getPiecePtr(start) && board.getPiecePtr(start)->getType() == PieceType::PAWN &&
+            ((currentPlayer == player1 && end.row == 0) || (currentPlayer == player2 && end.row == 7))) {
+            ui.displayMessage("Promote pawn to (q,r,b,n): ");
+            char promo;
+            std::cin >> promo;
+            switch (std::tolower(promo)) {
+                case 'q': promotionType = PieceType::QUEEN; break;
+                case 'r': promotionType = PieceType::ROOK; break;
+                case 'b': promotionType = PieceType::BISHOP; break;
+                case 'n': promotionType = PieceType::KNIGHT; break;
+                default: promotionType = PieceType::QUEEN; break;
             }
         }
 
-        // Handle Pawn Promotion
-        if (pieceToMove->getType() == PieceType::PAWN) {
-            Color color = pieceToMove->getColor();
-            if ((color == Color::WHITE && end.row == 0) || (color == Color::BLACK && end.row == 7)) {
-                if (promotionType != PieceType::NONE) {
-                    board.promotePawn(end, promotionType);
-                    ui.displayMessage("Pawn promoted at " + ui.formatPosition(end) + "!");
-                } else {
-                    // This case should be handled by getPlayerMove asking for promotion type
-                    ui.displayMessage("Error: Pawn reached promotion rank but no promotion type specified.");
-                    // Potentially revert move or force a default promotion (e.g. Queen)
-                    // For simplicity, assume getPlayerMove ensures promotionType is set.
-                }
-            }
-        }
-        return true;
-    }
-
-    void Game::playTurn() {
-        if (isRoundOver()) return;
-
-        ui.displayPlayerTurn(currentPlayer);
-        
-        bool moveMade = false;
-        while(!moveMade) {
-            std::string moveStr = ui.getPlayerMove(*currentPlayer);
-            if (moveStr.empty()) { // e.g. user wants to quit or an error in input
-                ui.displayMessage("Invalid input format for move. Try again (e.g., e2e4 or a7a8q).");
-                continue;
-            }
-
-            Position startPos = parsePosition(moveStr.substr(0, 2));
-            Position endPos = parsePosition(moveStr.substr(2, 2));
-            PieceType promotionTarget = PieceType::NONE;
-
-            if (moveStr.length() == 5) { // Potential promotion: e.g., e7e8q
-                char promotionChar = moveStr[4];
-                switch (promotionChar) {
-                    case 'q': promotionTarget = PieceType::QUEEN; break;
-                    case 'r': promotionTarget = PieceType::ROOK; break;
-                    case 'b': promotionTarget = PieceType::BISHOP; break;
-                    case 'n': promotionTarget = PieceType::KNIGHT; break;
-                    default: 
-                        ui.displayMessage("Invalid promotion piece: " + std::string(1, promotionChar) + ". Use q, r, b, or n.");
-                        continue; // Ask for move again
-                }
-            }
-            
-            // Validate pawn promotion input necessity
-            Piece* p = board.getPiecePtr(startPos);
-            if (p && p->getType() == PieceType::PAWN) {
-                Color pieceColor = p->getColor();
-                bool isPromotionSquare = (pieceColor == Color::WHITE && endPos.row == 0) || (pieceColor == Color::BLACK && endPos.row == 7);
-                if (p->isValidMove(startPos, endPos, board) && isPromotionSquare && promotionTarget == PieceType::NONE) {
-                     ui.displayMessage("Pawn promotion required. Append q, r, b, or n to your move (e.g. " + moveStr.substr(0,4) + "q).");
-                     continue;
-                }
-            }
-
-
-            moveMade = makeMove(startPos, endPos, promotionTarget);
-            if (!moveMade) {
-                ui.displayMessage("Please try your move again.");
-            }
-        }
-
-        ui.displayBoard(board);
-        checkForEndOfRound();
-
-        if (!isRoundOver()) {
-            switchPlayer();
-            if (board.isKingInCheck(currentPlayer->getColor())) {
-                ui.displayMessage(currentPlayer->getName() + "'s King is in check!");
-            }
+        if (makeMove(start, end, promotionType)) {
+            break;
+        } else {
+            ui.displayError("Invalid move! Try again.");
         }
     }
 
-    bool Game::canPlayerMakeAnyLegalMove(Player* player) {
-        Color playerColor = player->getColor();
-        for (int r = 0; r < 8; ++r) {
-            for (int c = 0; c < 8; ++c) {
-                Position start(r, c);
-                Piece* piece = board.getPiecePtr(start);
-                if (piece && piece->getColor() == playerColor) {
-                    std::vector<Position> possibleMoves = piece->getPossibleMoves(start, board);
-                    for (const auto& end : possibleMoves) {
-                        // Simulate move to check if it resolves check or is legal
-                        Board tempBoard = board;
-                        tempBoard.movePiece(start, end); // Simulate on temp board
-                        if (!tempBoard.isKingInCheck(playerColor)) {
-                            return true; // Found a legal move
+    checkForEndOfRound();
+    if (!isRoundOver()) {
+        switchPlayer();
+    }
+}
+
+bool Game::makeMove(Position start, Position end, PieceType promotionType) {
+    Piece* piece = board.getPiecePtr(start);
+    if (!piece || piece->getColor() != (currentPlayer == player1 ? Color::WHITE : Color::BLACK))
+        return false;
+
+    if (!piece->isValidMove(start, end, board))
+        return false;
+
+    // Simulate move for check
+    auto captured = board.movePiece(start, end);
+    bool leavesKingInCheck = board.isKingInCheck(piece->getColor());
+    if (leavesKingInCheck) {
+        // Undo move
+        board.movePiece(end, start);
+        board.setPiece(end, std::move(captured));
+        return false;
+    }
+
+    // Handle promotion
+    if (piece->getType() == PieceType::PAWN &&
+        ((piece->getColor() == Color::WHITE && end.row == 0) ||
+         (piece->getColor() == Color::BLACK && end.row == 7))) {
+        board.promotePawn(end, promotionType);
+    }
+
+    return true;
+}
+
+void Game::switchPlayer() {
+    currentPlayer = (currentPlayer == player1) ? player2 : player1;
+}
+
+Position Game::parsePosition(const std::string& s) const {
+    if (s.length() != 2) return Position(-1, -1);
+    char file = std::tolower(s[0]);
+    char rank = s[1];
+    int col = file - 'a';
+    int row = 8 - (rank - '0');
+    if (row < 0 || row > 7 || col < 0 || col > 7) return Position(-1, -1);
+    return Position(row, col);
+}
+
+bool Game::canPlayerMakeAnyLegalMove(Player* player) {
+    Color color = (player == player1) ? Color::WHITE : Color::BLACK;
+    for (int r = 0; r < 8; ++r) {
+        for (int c = 0; c < 8; ++c) {
+            Piece* piece = board.getPiecePtr(Position(r, c));
+            if (piece && piece->getColor() == color) {
+                for (int r2 = 0; r2 < 8; ++r2) {
+                    for (int c2 = 0; c2 < 8; ++c2) {
+                        Position start(r, c);
+                        Position end(r2, c2);
+                        if (piece->isValidMove(start, end, board)) {
+                            // Try move and see if king is left in check
+                            auto captured = board.movePiece(start, end);
+                            bool leavesKingInCheck = board.isKingInCheck(color);
+                            board.movePiece(end, start);
+                            board.setPiece(end, std::move(captured));
+                            if (!leavesKingInCheck)
+                                return true;
                         }
                     }
                 }
             }
         }
-        return false;
     }
+    return false;
+}
 
-    void Game::checkForEndOfRound() {
-        Player* opponent = (currentPlayer == player1) ? player2 : player1;
-        bool opponentInCheck = board.isKingInCheck(opponent->getColor());
-        bool opponentHasLegalMoves = canPlayerMakeAnyLegalMove(opponent);
+void Game::checkForEndOfRound() {
+    Color opponentColor = (currentPlayer == player1) ? Color::BLACK : Color::WHITE;
+    Player* opponent = (currentPlayer == player1) ? player2 : player1;
 
-        if (opponentInCheck && !opponentHasLegalMoves) {
-            roundState = (currentPlayer->getColor() == Color::WHITE) ? RoundState::CHECKMATE_WHITE_WINS : RoundState::CHECKMATE_BLACK_WINS;
-            ui.displayMessage("Checkmate! " + currentPlayer->getName() + " wins the round.");
-        } else if (!opponentInCheck && !opponentHasLegalMoves) {
-            roundState = RoundState::STALEMATE;
-            ui.displayMessage("Stalemate! The round is a draw.");
-        }
-        // Other draw conditions (50-move, threefold repetition) not implemented
+    bool inCheck = board.isKingInCheck(opponentColor);
+    bool hasLegalMove = canPlayerMakeAnyLegalMove(opponent);
+
+    if (inCheck && !hasLegalMove) {
+        roundState = (opponentColor == Color::WHITE) ? RoundState::CHECKMATE_BLACK_WINS : RoundState::CHECKMATE_WHITE_WINS;
+        ui.displayBoard(board);
+        ui.displayMessage("Checkmate! " + currentPlayer->getName() + " wins the round!");
+    } else if (!inCheck && !hasLegalMove) {
+        roundState = RoundState::STALEMATE;
+        ui.displayBoard(board);
+        ui.displayMessage("Stalemate! The round is a draw.");
+    } else {
+        roundState = RoundState::ONGOING;
     }
+}
 
+bool Game::isRoundOver() const {
+    return roundState != RoundState::ONGOING;
+}
 
-    void Game::switchPlayer() {
-        currentPlayer = (currentPlayer == player1) ? player2 : player1;
-    }
-
-    bool Game::isRoundOver() const {
-        return roundState != RoundState::ONGOING;
-    }
-
-    Player* Game::getRoundWinner() const {
-        if (roundState == RoundState::CHECKMATE_WHITE_WINS) return player1;
-        if (roundState == RoundState::CHECKMATE_BLACK_WINS) return player2;
-        return nullptr; // Draw or ongoing
-    }
-
+Player* Game::getRoundWinner() const {
+    if (roundState == RoundState::CHECKMATE_WHITE_WINS) return player1;
+    if (roundState == RoundState::CHECKMATE_BLACK_WINS) return player2;
+    return nullptr;
+}
 
 } // namespace PowerChess

@@ -12,8 +12,6 @@ SOURCES = src/main.cpp \
           src/Core/Board.cpp \
           src/Core/Player.cpp \
           src/Core/Game.cpp \
-          src/PowerUps/PowerUp.cpp \
-          src/PowerUps/KnightBoostPowerUp.cpp \
           src/UI/ConsoleUI.cpp
 EXECUTABLE = PowerChess
 

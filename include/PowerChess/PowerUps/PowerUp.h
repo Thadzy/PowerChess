@@ -10,9 +10,11 @@ namespace PowerChess {
     class Board;
     class ConsoleUI;
 
-
     enum class PowerUpType {
-        KNIGHT_BOOST
+        KNIGHT_BOOST,
+        KNIGHT_QUEEN_HYBRID,
+        DOUBLE_MOVE,
+        TELEPORT_PIECE
         // Add more types here
     };
 
@@ -21,7 +23,6 @@ namespace PowerChess {
         std::string name;
         std::string description;
         PowerUpType type;
-
 
       public:
         // Ensure constructor initialization order matches declaration order
@@ -41,6 +42,5 @@ namespace PowerChess {
     };
 
 } // namespace PowerChess
-
 
 #endif // POWERCHESS_POWERUPS_POWERUP_H
