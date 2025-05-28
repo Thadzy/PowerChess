@@ -70,15 +70,17 @@ This project uses only standard C++ (C++11 or later) and requires no external li
 1. **Build**
 
    
-bash
+```
    make
-   
+```
 
 2. **Run**
 
    
-bash
-   ./PowerChess
+```
+./PowerChess
+```
+   
    
 
 ---
