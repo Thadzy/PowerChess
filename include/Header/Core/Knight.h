@@ -3,15 +3,17 @@
 
 #include "Header/Core/Piece.h"
 
-namespace HardChess {
-    class Knight : public Piece {
+namespace HardChess
+{
+    class Knight : public Piece
+    {
     public:
-        Knight(Color c, Position pos); // Constructor to initialize Knight piece with name, color, and position
-        char getSymbol() const override; // Get Symbol ex.'N' for Knight
-        std::string getName() const override { return "Knight"; } // Get Name of the piece
-        std::unique_ptr<Piece> clone() const override; // Create a clone of the Knight piece
-        bool isValidMove(Position start, Position end, const Board& board) const override; // Check if the move is valid for a Knight piece
+        Knight(Color c, Position pos);
+        char getSymbol() const override;
+        std::string getName() const override { return "Knight"; }
+        std::unique_ptr<Piece> clone() const override;
+        bool isValidMove(Position start, Position end, const Board &board) const override;
     };
-}
+} // namespace HardChess
 
 #endif // HARDCHESS_CORE_KNIGHT_H

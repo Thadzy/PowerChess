@@ -3,73 +3,70 @@
 
 #include "Header/Core/CommonTypes.h"
 #include "Header/Core/Piece.h"
-#include "Header/UI/ConsoleUI.h"
 #include <vector>
 #include <memory>
 
 namespace HardChess
 {
-    // Forward declarations of piece classes to avoid circular dependencies
+    // Forward declarations
     class Pawn;
     class Rook;
     class Knight;
     class Bishop;
     class Queen;
     class King;
+    class ConsoleUI; // For display method, if kept
 
-    // Board class represents the chessboard, which is an 8x8 grid of pieces
     class Board
     {
     private:
         std::vector<std::vector<std::unique_ptr<Piece>>> grid;
-        Position whiteKingPos; // Position of the white king
-        Position blackKingPos; // Position of the black king
+        Position whiteKingPos;
+        Position blackKingPos;
+        Position enPassantTargetSquare; // Square a pawn can move to for en passant
 
-        // Struct to hold the state for move validation
         struct ValidationState
         {
-            Position start, end; // Start and end positions of the move
-            std::unique_ptr<Piece> capturedPiece; // Piece that is captured during the move
-            bool pieceAtStartOriginalHasMoved; // Flag to indicate if the piece at the start position has moved
+            Position start, end;
+            std::unique_ptr<Piece> capturedPiece; // For regular captures during validation
+            bool pieceAtStartOriginalHasMoved;
+            Position originalEnPassantTarget; // To restore en passant state
+            // For castling validation, king's original hasMoved is covered
+            // Rook's original hasMoved needs to be tracked if castling is part of tryMove
         };
-
-        ValidationState currentValidationState; // Current validation state
+        ValidationState currentValidationState;
 
     public:
-        Board();                              // Default constructor
-        Board(const Board &other);            // Deep copy constructor
-        Board &operator=(const Board &other); // Deep copy assignment
+        Board();
+        Board(const Board &other);
+        Board &operator=(const Board &other);
 
-        void initializeBoard();            // Initialize the board with pieces in their starting positions
-        void display(ConsoleUI &ui) const; // Display the board using the ConsoleUI class
-
-        // Get a pointer to the piece at a specific position
+        void initializeBoard();
+        
         Piece *getPiecePtr(Position pos) const;
-        
-        // Get a copy of the piece at a specific position
-        std::unique_ptr<Piece> getPiece(Position pos) const;
+        std::unique_ptr<Piece> getPieceClone(Position pos) const; // Renamed for clarity
 
-        void setPiece(Position pos, std::unique_ptr<Piece> piece); // Set a piece at a specific position
-        std::unique_ptr<Piece> removePiece(Position pos);         // Remove a piece from a specific position
+        void setPiece(Position pos, std::unique_ptr<Piece> piece);
+        std::unique_ptr<Piece> removePiece(Position pos);
 
-        // Move a piece from start to end position, returns captured piece if any
-        std::unique_ptr<Piece> movePiece(Position start, Position end);
+        std::unique_ptr<Piece> movePiece(Position start, Position end, bool isEnPassantCapture = false, bool isCastlingMove = false);
         
-        // Check if the path between two positions is clear
         bool isPathClear(Position start, Position end) const;
         
-        Position findKing(Color kingColor) const;                             // Find the position of the king of a specific color
-        bool isSquareAttacked(Position pos, Color attackerColor) const;       // Check if a square is attacked by a piece of a specific color
-        bool isKingInCheck(Color kingColor) const;                           // Check if the king of a specific color is in check
+        Position findKing(Color kingColor) const;
+        bool isSquareAttacked(Position pos, Color attackerColor) const;
+        bool isKingInCheck(Color kingColor) const;
 
-        // Methods for move validation
-        void recordPieceStatesForValidation(Position start, Position end);   // Record the states of pieces for move validation
-        std::unique_ptr<Piece> tryMoveForValidation(Position start, Position end); // Try to move a piece for validation purposes
+        void recordPieceStatesForValidation(Position start, Position end);
+        std::unique_ptr<Piece> tryMoveForValidation(Position start, Position end, bool isEnPassant = false, bool isCastling = false);
         void revertValidationMove(Position start, Position end, std::unique_ptr<Piece> originalPieceAtEnd);
-        // Revert the move made for validation purposes
 
-        bool promotePawn(Position pawnPos, PieceType promotionType); // Promote a pawn to a different piece type
+        bool promotePawn(Position pawnPos, PieceType promotionType);
+
+        Position getEnPassantTargetSquare() const { return enPassantTargetSquare; }
+        void setEnPassantTargetSquare(Position pos) { enPassantTargetSquare = pos; }
+        void clearEnPassantTargetSquare() { enPassantTargetSquare = Position(-1, -1); }
     };
-}
+} // namespace HardChess
 
 #endif // HARDCHESS_CORE_BOARD_H

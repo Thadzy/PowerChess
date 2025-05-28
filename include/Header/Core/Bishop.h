@@ -8,12 +8,12 @@ namespace HardChess
     class Bishop : public Piece
     {
     public:
-        Bishop(Color c, Position pos); // Declares a class Bishop that inherits from the base class Piece
-        char getSymbol() const override; // Get Symbol ex.'B' for Bishop 
-        std::string getName() const override { return "Bishop"; } // Get Name of the piece
-        std::unique_ptr<Piece> clone() const override; // Create a clone of the Bishop piece
-        bool isValidMove(Position start, Position end, const Board& board) const override; // Check if the move is valid for a Bishop piece
+        Bishop(Color c, Position pos);
+        char getSymbol() const override;
+        std::string getName() const override { return "Bishop"; }
+        std::unique_ptr<Piece> clone() const override;
+        bool isValidMove(Position start, Position end, const Board &board) const override;
     };
-} 
+} // namespace HardChess
 
 #endif // HARDCHESS_CORE_BISHOP_H

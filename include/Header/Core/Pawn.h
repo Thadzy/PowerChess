@@ -3,17 +3,17 @@
 
 #include "Header/Core/Piece.h"
 
-namespace HardChess {
-
-    class Pawn : public Piece {
-      public:
+namespace HardChess
+{
+    class Pawn : public Piece
+    {
+    public:
         Pawn(Color c, Position pos);
         char getSymbol() const override;
         std::string getName() const override { return "Pawn"; }
         std::unique_ptr<Piece> clone() const override;
-        bool isValidMove(Position start, Position end, const Board& board) const override;
+        bool isValidMove(Position start, Position end, const Board &board) const override;
     };
+} // namespace HardChess
 
-} // namespace PowerChess
-
-#endif // POWERCHESS_CORE_PAWN_H
+#endif // HARDCHESS_CORE_PAWN_H

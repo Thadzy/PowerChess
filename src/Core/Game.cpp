@@ -1,183 +1,296 @@
 #include "Header/Core/Game.h"
-#include <iostream>
-#include <cctype>
-#include <limits>
+#include <iostream> // For UI interaction via ConsoleUI
+#include <cctype>   // For std::tolower
+#include <limits>   // For std::numeric_limits
+#include <cmath>    // For std::abs in castling check
 
-namespace HardChess {
+namespace HardChess
+{
+    Game::Game(Player *p1, Player *p2, ConsoleUI &consoleUi)
+        : player1(p1), player2(p2), currentPlayer(p1), ui(consoleUi), roundState(RoundState::ONGOING) {}
 
-Game::Game(Player* p1, Player* p2, ConsoleUI& consoleUi)
-    : player1(p1), player2(p2), currentPlayer(p1), ui(consoleUi), roundState(RoundState::ONGOING) {}
-
-void Game::startRound() {
-    board.initializeBoard();
-    currentPlayer = player1; // White starts
-    roundState = RoundState::ONGOING;
-    ui.displayBoard(board);
-}
-
-void Game::play() {
-    startRound();
-    while (!isRoundOver()) {
-        playTurn();
+    void Game::startRound()
+    {
+        board.initializeBoard();
+        currentPlayer = (player1->getColor() == Color::WHITE) ? player1 : player2; // White always starts
+        roundState = RoundState::ONGOING;
+        // ui.displayBoard(board); // Display board at the start of playTurn instead
     }
-    
-    // Display final game result
-    Player* winner = getRoundWinner();
-    if (winner) {
-        ui.displayMessage("Game Over! " + winner->getName() + " wins!");
-    } else {
-        ui.displayMessage("Game Over! It's a draw!");
-    }
-}
 
-void Game::playTurn() {
-    if (isRoundOver()) return;
+    RoundState Game::playRound()
+    {
+        startRound();
+        while (roundState == RoundState::ONGOING)
+        {
+            ui.clearScreen();
+            ui.displayPlayerStats(*player1, *player2);
+            ui.displayBoard(board);
+            ui.displayCurrentPlayerTurn(*currentPlayer);
 
-    ui.displayBoard(board);
-    ui.displayMessage(currentPlayer->getName() + "'s turn (" + (currentPlayer == player1 ? "White" : "Black") + ")");
+            if (board.isKingInCheck(currentPlayer->getColor())) {
+                ui.displayMessage("Your King is in Check!");
+            }
 
-    // Get move input
-    std::string startStr, endStr;
-    Position start, end;
-    PieceType promotionType = PieceType::NONE;
+            std::string startStr, endStr;
+            Position startPos, endPos;
+            PieceType promotionType = PieceType::NONE;
+            bool moveMade = false;
 
-    while (true) {
-        ui.displayMessage("Enter move (e.g., e2e4 or a7a8q for promotion): ");
-        std::cin >> startStr >> endStr;
-        start = parsePosition(startStr);
-        end = parsePosition(endStr);
+            while(!moveMade) {
+                ui.getMoveInput(*currentPlayer, startStr, endStr);
+                startPos = parsePosition(startStr);
+                endPos = parsePosition(endStr);
 
-        // Check for promotion
-        if (board.getPiecePtr(start) && board.getPiecePtr(start)->getType() == PieceType::PAWN &&
-            ((currentPlayer == player1 && end.row == 0) || (currentPlayer == player2 && end.row == 7))) {
-            ui.displayMessage("Promote pawn to (q,r,b,n): ");
-            char promo;
-            std::cin >> promo;
-            switch (std::tolower(promo)) {
-                case 'q': promotionType = PieceType::QUEEN; break;
-                case 'r': promotionType = PieceType::ROOK; break;
-                case 'b': promotionType = PieceType::BISHOP; break;
-                case 'n': promotionType = PieceType::KNIGHT; break;
-                default: promotionType = PieceType::QUEEN; break;
+                if (!startPos.isValid() || !endPos.isValid()) {
+                    ui.displayError("Invalid position format. Use algebraic notation (e.g., e2 e4).");
+                    continue;
+                }
+
+                Piece* pieceToMove = board.getPiecePtr(startPos);
+                if (!pieceToMove || pieceToMove->getColor() != currentPlayer->getColor()) {
+                    ui.displayError("Not your piece or empty square at " + startStr + ".");
+                    continue;
+                }
+
+                // Pawn Promotion Check (before makeMove)
+                if (pieceToMove->getType() == PieceType::PAWN) {
+                    bool whitePromotion = (pieceToMove->getColor() == Color::WHITE && startPos.row == 1 && endPos.row == 0);
+                    bool blackPromotion = (pieceToMove->getColor() == Color::BLACK && startPos.row == 6 && endPos.row == 7);
+                     // Check actual end square for promotion, not just start
+                    if (pieceToMove->getColor() == Color::WHITE && endPos.row == 0 ||
+                        pieceToMove->getColor() == Color::BLACK && endPos.row == 7)
+                    {
+                        if (pieceToMove->isValidMove(startPos,endPos,board)) // Check if basic pawn move to promotion square is valid
+                             promotionType = ui.promptPawnPromotionChoice(*currentPlayer);
+                    }
+                }
+                
+                if (makeMove(startPos, endPos, promotionType)) {
+                    moveMade = true;
+                } else {
+                    ui.displayError("Invalid move! Try again.");
+                    // Board state is unchanged by failed makeMove due to validation
+                }
+            }
+            
+            checkForEndOfRound();
+            if (roundState == RoundState::ONGOING)
+            {
+                switchPlayer();
             }
         }
+        // Display final board and result of the round
+        ui.clearScreen();
+        ui.displayPlayerStats(*player1, *player2);
+        ui.displayBoard(board);
+        std::string winnerName = "";
+        if (roundState == RoundState::CHECKMATE_WHITE_WINS) winnerName = player1->getName();
+        else if (roundState == RoundState::CHECKMATE_BLACK_WINS) winnerName = player2->getName();
+        ui.displayRoundResult(roundState, winnerName);
+        ui.pauseForUser();
+        return roundState;
+    }
+    
+    bool Game::isCastlingAttempt(const Piece* piece, Position start, Position end) const {
+        return piece && piece->getType() == PieceType::KING && std::abs(end.col - start.col) == 2 && start.row == end.row;
+    }
 
-        if (makeMove(start, end, promotionType)) {
-            break;
-        } else {
-            ui.displayError("Invalid move! Try again.");
+    // Helper to check if castling is safe (not moving through/into check)
+    bool Game::canCastle(const Piece* king, Position kingStart, Position kingEnd, Position& rookStart, Position& rookEnd) {
+        if (board.isKingInCheck(king->getColor())) return false; // Cannot castle out of check
+
+        int kingStep = (kingEnd.col > kingStart.col) ? 1 : -1;
+        Position kingPathSquare(kingStart.row, kingStart.col + kingStep); // Square king passes through
+
+        if (board.isSquareAttacked(kingPathSquare, (king->getColor() == Color::WHITE ? Color::BLACK : Color::WHITE))) {
+            return false; // King cannot pass through an attacked square
         }
+        // King's landing square safety will be checked by the general makeMove validation
+        
+        // Determine rook positions
+        rookStart = Position(kingStart.row, (kingStep > 0) ? 7 : 0);
+        rookEnd = Position(kingStart.row, kingStart.col + kingStep); // Rook moves next to king on path square
+
+        Piece* rook = board.getPiecePtr(rookStart);
+        if (!rook || rook->getType() != PieceType::ROOK || rook->getHasMoved()) return false;
+        if (!board.isPathClear(kingStart, rookStart)) return false;
+
+        return true; // Conditions met for castling attempt based on checks and path
     }
 
-    checkForEndOfRound();
-    if (!isRoundOver()) {
-        switchPlayer();
+
+    bool Game::makeMove(const Position &start, const Position &end, PieceType promotionType)
+    {
+        Piece *piece = board.getPiecePtr(start);
+        if (!piece || piece->getColor() != currentPlayer->getColor()) return false;
+
+        bool isCastling = isCastlingAttempt(piece, start, end);
+        bool isEnPassant = false;
+
+        if (piece->getType() == PieceType::PAWN && end == board.getEnPassantTargetSquare() &&
+            std::abs(start.col - end.col) == 1 && board.getPiecePtr(end) == nullptr ) { // must be diagonal to EP target sq and target sq empty
+            isEnPassant = true;
+        }
+
+
+        if (!piece->isValidMove(start, end, board) && !isEnPassant) { // isValidMove for pawn might not know about en-passant state directly
+             // For en-passant, Pawn::isValidMove should return true if end == board.getEnPassantTargetSquare()
+             // Let's rely on Pawn::isValidMove to correctly identify en-passant possibilities based on board state
+            if(! (piece->getType() == PieceType::PAWN && end == board.getEnPassantTargetSquare() && piece->isValidMove(start,end,board)))
+                 return false;
+            if(piece->getType() == PieceType::PAWN && end == board.getEnPassantTargetSquare() && piece->isValidMove(start,end,board)){
+                isEnPassant = true; // Confirm it's a valid en-passant
+            } else {
+                return false;
+            }
+        }
+        
+        // Special castling safety checks (cannot move out of, through, or (implicitly by tryMove) into check)
+        if (isCastling) {
+            Position rookStart, rookEnd; // Will be filled by canCastle
+            if (board.isKingInCheck(piece->getColor())) return false; // Cannot castle if in check
+
+            int kingDir = (end.col > start.col) ? 1 : -1;
+            Position kingPathSq(start.row, start.col + kingDir);
+            if (board.isSquareAttacked(kingPathSq, (piece->getColor() == Color::WHITE ? Color::BLACK : Color::WHITE))) {
+                return false; // Cannot castle through check
+            }
+            // The landing square (end) will be checked by tryMoveForValidation
+        }
+
+
+        // Try the move and check if it leaves the king in check
+        Board tempBoard = board; // Create a temporary board for validation
+        Piece* tempPiece = tempBoard.getPiecePtr(start);
+        std::unique_ptr<Piece> tempCapturedPiece = nullptr;
+
+        // Simulate move on tempBoard
+        if (isCastling) {
+            // For castling, simulate both king and rook move on tempBoard
+            tempBoard.movePiece(start, end, false, true);
+        } else {
+            tempBoard.movePiece(start, end, isEnPassant, false);
+        }
+
+
+        if (tempBoard.isKingInCheck(piece->getColor()))
+        {
+            return false; // Move would leave king in check
+        }
+
+        // If move is valid and safe, make it on the actual board
+        board.movePiece(start, end, isEnPassant, isCastling);
+
+        // Handle promotion if applicable (after the move is made)
+        Piece *movedPieceOnBoard = board.getPiecePtr(end); // Get the piece that just moved
+        if (movedPieceOnBoard && movedPieceOnBoard->getType() == PieceType::PAWN && promotionType != PieceType::NONE)
+        {
+            if ((movedPieceOnBoard->getColor() == Color::WHITE && end.row == 0) ||
+                (movedPieceOnBoard->getColor() == Color::BLACK && end.row == 7))
+            {
+                board.promotePawn(end, promotionType);
+            }
+        }
+        return true;
     }
-}
 
-bool Game::makeMove(const Position& start, const Position& end, PieceType promotionType) {
-    Piece* piece = board.getPiecePtr(start);
-    if (!piece || piece->getColor() != (currentPlayer == player1 ? Color::WHITE : Color::BLACK))
-        return false;
-
-    if (!piece->isValidMove(start, end, board))
-        return false;
-
-    // Use validation methods for proper move testing
-    auto originalPieceAtEnd = board.tryMoveForValidation(start, end);
-    bool leavesKingInCheck = board.isKingInCheck(piece->getColor());
-    
-    if (leavesKingInCheck) {
-        // Undo the validation move
-        board.revertValidationMove(start, end, std::move(originalPieceAtEnd));
-        return false;
+    void Game::switchPlayer()
+    {
+        currentPlayer = (currentPlayer == player1) ? player2 : player1;
     }
 
-    // If move is valid, revert validation and make actual move
-    board.revertValidationMove(start, end, std::move(originalPieceAtEnd));
-    
-    // Make the actual move
-    auto captured = board.movePiece(start, end);
+    Position Game::parsePosition(const std::string &s) const
+    {
+        if (s.length() != 2) return Position(-1, -1); // Invalid format
+        char file = std::tolower(s[0]);
+        char rank = s[1];
 
-    // Handle promotion
-    if (piece->getType() == PieceType::PAWN &&
-        ((piece->getColor() == Color::WHITE && end.row == 0) ||
-         (piece->getColor() == Color::BLACK && end.row == 7))) {
-        board.promotePawn(end, promotionType);
+        if (file < 'a' || file > 'h' || rank < '1' || rank > '8')
+            return Position(-1, -1); // Out of bounds
+
+        int col = file - 'a';
+        int row = 7 - (rank - '1'); // '1' maps to row 7, '8' to row 0
+        return Position(row, col);
     }
 
-    return true;
-}
+    bool Game::canPlayerMakeAnyLegalMove(Player *player)
+    {
+        Color playerColor = player->getColor();
+        for (int r = 0; r < 8; ++r)
+        {
+            for (int c = 0; c < 8; ++c)
+            {
+                Position start(r, c);
+                Piece *p = board.getPiecePtr(start);
+                if (p && p->getColor() == playerColor)
+                {
+                    for (int r2 = 0; r2 < 8; ++r2)
+                    {
+                        for (int c2 = 0; c2 < 8; ++c2)
+                        {
+                            Position end(r2, c2);
+                            if (start == end) continue;
 
-void Game::switchPlayer() {
-    currentPlayer = (currentPlayer == player1) ? player2 : player1;
-}
-
-Position Game::parsePosition(const std::string& s) const {
-    if (s.length() != 2) return Position(-1, -1);
-    char file = std::tolower(s[0]);
-    char rank = s[1];
-    int col = file - 'a';
-    int row = 8 - (rank - '0');
-    if (row < 0 || row > 7 || col < 0 || col > 7) return Position(-1, -1);
-    return Position(row, col);
-}
-
-bool Game::canPlayerMakeAnyLegalMove(Player* player) {
-    Color color = (player == player1) ? Color::WHITE : Color::BLACK;
-    for (int r = 0; r < 8; ++r) {
-        for (int c = 0; c < 8; ++c) {
-            Piece* piece = board.getPiecePtr(Position(r, c));
-            if (piece && piece->getColor() == color) {
-                for (int r2 = 0; r2 < 8; ++r2) {
-                    for (int c2 = 0; c2 < 8; ++c2) {
-                        Position start(r, c);
-                        Position end(r2, c2);
-                        if (piece->isValidMove(start, end, board)) {
-                            // Use validation methods to test the move
-                            auto originalPieceAtEnd = board.tryMoveForValidation(start, end);
-                            bool leavesKingInCheck = board.isKingInCheck(color);
-                            board.revertValidationMove(start, end, std::move(originalPieceAtEnd));
+                            bool isCastlingPossible = isCastlingAttempt(p, start, end);
+                            bool isEnPassantPossible = (p->getType() == PieceType::PAWN && 
+                                                       end == board.getEnPassantTargetSquare() &&
+                                                       std::abs(start.col - end.col) == 1 &&
+                                                       board.getPiecePtr(end) == nullptr);
                             
-                            if (!leavesKingInCheck)
-                                return true;
+                            if (p->isValidMove(start, end, board) || isEnPassantPossible)
+                            {
+                                Board tempBoard = board; // Use a copy for validation
+                                Piece* tempPiece = tempBoard.getPiecePtr(start);
+                                
+                                // Simulate move on tempBoard
+                                bool tempIsCastling = isCastlingPossible && p->isValidMove(start,end,board);
+                                if (tempIsCastling) {
+                                     // Check special castling safety rules before simulating
+                                    if (tempBoard.isKingInCheck(playerColor)) continue;
+                                    int kingDir = (end.col > start.col) ? 1 : -1;
+                                    Position kingPathSq(start.row, start.col + kingDir);
+                                    if (tempBoard.isSquareAttacked(kingPathSq, (playerColor == Color::WHITE ? Color::BLACK : Color::WHITE))) {
+                                        continue; 
+                                    }
+                                    tempBoard.movePiece(start, end, false, true);
+                                } else {
+                                     tempBoard.movePiece(start, end, isEnPassantPossible, false);
+                                }
+
+
+                                if (!tempBoard.isKingInCheck(playerColor))
+                                {
+                                    return true; // Found a legal move
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+        return false; // No legal moves found
     }
-    return false;
-}
 
-void Game::checkForEndOfRound() {
-    Color opponentColor = (currentPlayer == player1) ? Color::BLACK : Color::WHITE;
-    Player* opponent = (currentPlayer == player1) ? player2 : player1;
+    void Game::checkForEndOfRound()
+    {
+        // Check for current player's opponent
+        Player* opponent = (currentPlayer == player1) ? player2 : player1;
+        Color opponentColor = opponent->getColor();
 
-    bool inCheck = board.isKingInCheck(opponentColor);
-    bool hasLegalMove = canPlayerMakeAnyLegalMove(opponent);
+        bool opponentInCheck = board.isKingInCheck(opponentColor);
+        bool opponentHasLegalMove = canPlayerMakeAnyLegalMove(opponent);
 
-    if (inCheck && !hasLegalMove) {
-        roundState = (opponentColor == Color::WHITE) ? RoundState::CHECKMATE_BLACK_WINS : RoundState::CHECKMATE_WHITE_WINS;
-        ui.displayBoard(board);
-        ui.displayMessage("Checkmate! " + currentPlayer->getName() + " wins the round!");
-    } else if (!inCheck && !hasLegalMove) {
-        roundState = RoundState::STALEMATE;
-        ui.displayBoard(board);
-        ui.displayMessage("Stalemate! The round is a draw.");
-    } else {
-        roundState = RoundState::ONGOING;
+        if (opponentInCheck && !opponentHasLegalMove)
+        {
+            roundState = (currentPlayer->getColor() == Color::WHITE) ? RoundState::CHECKMATE_WHITE_WINS : RoundState::CHECKMATE_BLACK_WINS;
+        }
+        else if (!opponentInCheck && !opponentHasLegalMove)
+        {
+            roundState = RoundState::STALEMATE;
+        }
+        else
+        {
+            roundState = RoundState::ONGOING;
+        }
     }
-}
-
-bool Game::isRoundOver() const {
-    return roundState != RoundState::ONGOING;
-}
-
-Player* Game::getRoundWinner() const {
-    if (roundState == RoundState::CHECKMATE_WHITE_WINS) return player1;
-    if (roundState == RoundState::CHECKMATE_BLACK_WINS) return player2;
-    return nullptr;
-}
-
 } // namespace HardChess

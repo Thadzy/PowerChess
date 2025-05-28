@@ -1,47 +1,62 @@
 #include "Header/Core/King.h"
 #include "Header/Core/Board.h"
-#include <cmath> // For abs
+#include "Header/Core/Rook.h" // For castling checks
+#include <cmath>         // For std::abs
 
-namespace HardChess {
+namespace HardChess
+{
+    King::King(Color c, Position pos)
+        : Piece(c, PieceType::KING, pos) {}
 
-    King::King(Color c, Position pos) : Piece(c, PieceType::KING, pos) {}
-
-    char King::getSymbol() const {
+    char King::getSymbol() const
+    {
         return (color == Color::WHITE) ? 'K' : 'k';
     }
 
-    std::unique_ptr<Piece> King::clone() const {
-        auto newPiece = std::make_unique<King>(this->color, this->position);
+    std::unique_ptr<Piece> King::clone() const
+    {
+        auto newPiece = std::make_unique<King>(color, position);
         newPiece->setHasMoved(this->hasMoved);
         return newPiece;
     }
 
-    bool King::isValidMove(Position start, Position end, const Board& board) const {
-        if (!end.isValid()) return false;
-        if (start == end) return false;
-
-        std::unique_ptr<Piece> targetPiece = board.getPiece(end);
-        if (targetPiece && targetPiece->getColor() == this->color) {
+    bool King::isValidMove(Position start, Position end, const Board &board) const
+    {
+        if (!end.isValid() || start == end)
             return false;
+
+        Piece *targetPieceOnEnd = board.getPiecePtr(end);
+        if (targetPieceOnEnd && targetPieceOnEnd->getColor() == this->color)
+        {
+            return false; // Cannot capture own piece
         }
 
         int dr = std::abs(start.row - end.row);
         int dc = std::abs(start.col - end.col);
 
-        if (dr <= 1 && dc <= 1) { // Moves one square in any direction
-            // The check for whether the king moves into check is typically handled
-            // by the Game logic calling Board::isSquareAttacked or similar.
-            // For this piece-specific isValidMove, we assume the square isn't attacked by self-check rule.
+        // Standard king move (one square in any direction)
+        if (dr <= 1 && dc <= 1)
+        {
             return true;
         }
-        
-        // Castling logic would be here if implemented
-        // Example basic castling (needs Board methods like isSquareAttacked, hasRookMoved etc.):
-        // if (!this->hasMoved && dr == 0 && std::abs(dc) == 2) {
-        //     // Check path clear, not in/through/into check, rook hasn't moved
-        // }
 
+        // Castling: King moves two squares horizontally
+        if (dr == 0 && dc == 2 && !this->hasMoved)
+        {
+            // Determine if kingside or queenside castling
+            int rookCol = (end.col > start.col) ? 7 : 0; // Kingside (7) or Queenside (0)
+            Position rookPos(start.row, rookCol);
+            Piece *rookPiece = board.getPiecePtr(rookPos);
+
+            if (rookPiece && rookPiece->getType() == PieceType::ROOK && rookPiece->getColor() == this->color && !rookPiece->getHasMoved())
+            {
+                // Path between king and rook must be clear
+                // Note: The board/game logic will handle checks for moving through/into check
+                if (board.isPathClear(start, rookPos)) {
+                    return true; // King part of castling is valid if path to rook is clear and rook is eligible
+                }
+            }
+        }
         return false;
     }
-
-} // namespace Hardchess
+} // namespace HardChess

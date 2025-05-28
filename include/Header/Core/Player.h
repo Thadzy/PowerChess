@@ -1,48 +1,41 @@
-#ifndef POWERCHESS_CORE_PLAYER_H
-#define POWERCHESS_CORE_PLAYER_H
+#ifndef HARDCHESS_CORE_PLAYER_H
+#define HARDCHESS_CORE_PLAYER_H
 
 #include "Header/Core/CommonTypes.h"
 #include <string>
-#include <memory> // For std::unique_ptr
+#include <memory>
 
 namespace HardChess
 {
-
-  class Player
-  {
-  private:
-    std::string name;
-    Color color;
-    int hearts;
-    int score; // Rounds won
-
-  public:
-    // Constructor to initialize a Player with name and color
-    Player(const std::string &name, Color c);
-
-    // Deleted copy constructor and assignment operator to prevent copying
-    const std::string &getName() const { return name; }
-    Color getColor() const { return color; }
-    int getHearts() const { return hearts; }
-    int getScore() const { return score; }
-
-    // Function to get the color as a string
-    std::string getColorString() const
+    class Player
     {
-      return (color == Color::WHITE) ? "White" : "Black";
-    }
+    private:
+        std::string name;
+        Color color;
+        int hearts;
+        int score; // Rounds won in a match
 
-    // Function to display player information
-    void loseHeart();
-    void incrementScore();
-    void resetForNewMatch();
+    public:
+        Player(const std::string &name, Color c, int initialHearts = 3);
 
-    // Add to Player class if not already present
-    void setHearts(int hearts) { this->hearts = hearts; }
-    void setScore(int score) { this->score = score; }
+        const std::string &getName() const { return name; }
+        Color getColor() const { return color; }
+        int getHearts() const { return hearts; }
+        int getScore() const { return score; }
 
-  };
+        std::string getColorString() const
+        {
+            return (color == Color::WHITE) ? "White" : "Black";
+        }
 
-} // namespace PowerChess
+        void loseHeart();
+        void incrementScore();
+        void resetForNewMatch(int initialHearts = 3); // Resets score and hearts for a new match
+        // void resetForNewRound(); // If anything specific needed between rounds of same match
 
-#endif // POWERCHESS_CORE_PLAYER_H
+        void setHearts(int h) { hearts = h; } // For potential game loading later
+        void setScore(int s) { score = s; }   // For potential game loading later
+    };
+} // namespace HardChess
+
+#endif // HARDCHESS_CORE_PLAYER_H

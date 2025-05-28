@@ -1,49 +1,46 @@
 #include "Header/Core/Bishop.h"
-#include "Header/Core/Board.h"
+#include "Header/Core/Board.h" // For board.isPathClear and board.getPiecePtr
+#include <cmath>           // For std::abs
 
-namespace HardChess {
+namespace HardChess
+{
+    Bishop::Bishop(Color c, Position pos)
+        : Piece(c, PieceType::BISHOP, pos) {}
 
-Bishop::Bishop(Color c, Position pos)
-    : Piece(c, PieceType::BISHOP, pos) {}
-
-char Bishop::getSymbol() const {
-    return (color == Color::WHITE) ? 'B' : 'b';
-}
-
-std::unique_ptr<Piece> Bishop::clone() const {
-    return std::make_unique<Bishop>(color, position);
-}
-
-bool Bishop::isValidMove(Position start, Position end, const Board& board) const {
-    if (!start.isValid() || !end.isValid() || start == end)
-        return false;
-
-    int dr = end.row - start.row;
-    int dc = end.col - start.col;
-
-    // Must move diagonally
-    if (std::abs(dr) != std::abs(dc))
-        return false;
-
-    int stepR = (dr > 0) ? 1 : -1;
-    int stepC = (dc > 0) ? 1 : -1;
-    int r = start.row + stepR;
-    int c = start.col + stepC;
-
-    // Check all squares between start and end
-    while (r != end.row || c != end.col) {
-        if (board.getPiecePtr(Position(r, c)) != nullptr)
-            return false;
-        r += stepR;
-        c += stepC;
+    char Bishop::getSymbol() const
+    {
+        return (color == Color::WHITE) ? 'B' : 'b';
     }
 
-    // Can't capture own piece
-    const Piece* dest = board.getPiecePtr(end);
-    if (dest && dest->getColor() == color)
-        return false;
+    std::unique_ptr<Piece> Bishop::clone() const
+    {
+        auto newPiece = std::make_unique<Bishop>(color, position);
+        newPiece->setHasMoved(this->hasMoved); // Ensure hasMoved is copied
+        return newPiece;
+    }
 
-    return true;
-}
+    bool Bishop::isValidMove(Position start, Position end, const Board &board) const
+    {
+        if (!end.isValid() || start == end)
+            return false;
 
-} // namespace PowerChess
+        Piece *targetPiece = board.getPiecePtr(end);
+        if (targetPiece && targetPiece->getColor() == this->color)
+        {
+            return false; // Cannot capture own piece
+        }
+
+        int dr = end.row - start.row;
+        int dc = end.col - start.col;
+
+        // Must move diagonally
+        if (std::abs(dr) != std::abs(dc))
+            return false;
+
+        // Path must be clear
+        if (!board.isPathClear(start, end))
+            return false;
+
+        return true;
+    }
+} // namespace HardChess

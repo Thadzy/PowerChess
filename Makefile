@@ -1,45 +1,48 @@
-# Compiler and Flags
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude
-
-# Linker Flags (add -fsanitize=address -g for debugging)
+CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude # Add -g for debugging
 LDFLAGS =
 
-# Source Files
-SOURCES = src/main.cpp \
-          src/Core/Piece.cpp \
-          src/Core/Pawn.cpp \
-          src/Core/Rook.cpp \
-          src/Core/Knight.cpp \
-          src/Core/Bishop.cpp \
-          src/Core/Queen.cpp \
-          src/Core/King.cpp \
-          src/Core/Board.cpp \
-          src/Core/Player.cpp \
-          src/Core/Game.cpp \
-          src/UI/ConsoleUI.cpp
+# Source files
+SRCDIR_CORE = src/Core
+SRCDIR_UI = src/UI
+MAIN_SRC = src/main.cpp
 
-# Object Files (replace .cpp with .o)
-OBJECTS = $(SOURCES:.cpp=.o)
+CORE_SRCS = $(wildcard $(SRCDIR_CORE)/*.cpp)
+UI_SRCS = $(wildcard $(SRCDIR_UI)/*.cpp)
 
-# Output Executable
-EXECUTABLE = HardChess
+# Object files
+OBJDIR = build/obj
+CORE_OBJS = $(patsubst $(SRCDIR_CORE)/%.cpp, $(OBJDIR)/%.o, $(CORE_SRCS))
+UI_OBJS = $(patsubst $(SRCDIR_UI)/%.cpp, $(OBJDIR)/%.o, $(UI_SRCS))
+MAIN_OBJ = $(patsubst src/%.cpp, $(OBJDIR)/%.o, $(MAIN_SRC))
 
-# Default Target
-all: $(EXECUTABLE)
+TARGET = build/HardChess
 
-# Linking the executable
-$(EXECUTABLE): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(EXECUTABLE) $(LDFLAGS)
+# Default target
+all: $(TARGET)
 
-# Compiling each .cpp into .o
-%.o: %.cpp
+$(TARGET): $(MAIN_OBJ) $(CORE_OBJS) $(UI_OBJS)
+	@mkdir -p build
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+	@echo "Built $(TARGET) successfully."
+
+$(OBJDIR)/%.o: $(SRCDIR_CORE)/%.cpp
+	@mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Run the program
-run: $(EXECUTABLE)
-	./$(EXECUTABLE)
+$(OBJDIR)/%.o: $(SRCDIR_UI)/%.cpp
+	@mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean build artifacts
+$(OBJDIR)/%.o: src/%.cpp
+	@mkdir -p $(OBJDIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 clean:
-	rm -f $(EXECUTABLE) $(OBJECTS) PowerChess.dSYM
+	@echo "Cleaning build files..."
+	rm -rf $(OBJDIR) $(TARGET) build
+
+run: all
+	./$(TARGET)
+
+.PHONY: all clean run
