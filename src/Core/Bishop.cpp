@@ -1,7 +1,7 @@
 #include "Header/Core/Bishop.h"
 #include "Header/Core/Board.h"
 
-namespace PowerChess {
+namespace HardChess {
 
 Bishop::Bishop(Color c, Position pos)
     : Piece(c, PieceType::BISHOP, pos) {}
@@ -31,7 +31,7 @@ bool Bishop::isValidMove(Position start, Position end, const Board& board) const
     int c = start.col + stepC;
 
     // Check all squares between start and end
-    while (r != end.row && c != end.col) {
+    while (r != end.row || c != end.col) {
         if (board.getPiecePtr(Position(r, c)) != nullptr)
             return false;
         r += stepR;

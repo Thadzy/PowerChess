@@ -3,7 +3,7 @@
 #include <cctype>
 #include <limits>
 
-namespace Hardchess {
+namespace HardChess {
 
 Game::Game(Player* p1, Player* p2, ConsoleUI& consoleUi)
     : player1(p1), player2(p2), currentPlayer(p1), ui(consoleUi), roundState(RoundState::ONGOING) {}
@@ -13,6 +13,21 @@ void Game::startRound() {
     currentPlayer = player1; // White starts
     roundState = RoundState::ONGOING;
     ui.displayBoard(board);
+}
+
+void Game::play() {
+    startRound();
+    while (!isRoundOver()) {
+        playTurn();
+    }
+    
+    // Display final game result
+    Player* winner = getRoundWinner();
+    if (winner) {
+        ui.displayMessage("Game Over! " + winner->getName() + " wins!");
+    } else {
+        ui.displayMessage("Game Over! It's a draw!");
+    }
 }
 
 void Game::playTurn() {
@@ -27,12 +42,12 @@ void Game::playTurn() {
     PieceType promotionType = PieceType::NONE;
 
     while (true) {
-        ui.displayMessage("Enter move (e.g., e2 e4): ");
+        ui.displayMessage("Enter move (e.g., e2e4 or a7a8q for promotion): ");
         std::cin >> startStr >> endStr;
         start = parsePosition(startStr);
         end = parsePosition(endStr);
 
-        // Promotion (optional)
+        // Check for promotion
         if (board.getPiecePtr(start) && board.getPiecePtr(start)->getType() == PieceType::PAWN &&
             ((currentPlayer == player1 && end.row == 0) || (currentPlayer == player2 && end.row == 7))) {
             ui.displayMessage("Promote pawn to (q,r,b,n): ");
@@ -60,7 +75,7 @@ void Game::playTurn() {
     }
 }
 
-bool Game::makeMove(Position start, Position end, PieceType promotionType) {
+bool Game::makeMove(const Position& start, const Position& end, PieceType promotionType) {
     Piece* piece = board.getPiecePtr(start);
     if (!piece || piece->getColor() != (currentPlayer == player1 ? Color::WHITE : Color::BLACK))
         return false;
@@ -68,15 +83,21 @@ bool Game::makeMove(Position start, Position end, PieceType promotionType) {
     if (!piece->isValidMove(start, end, board))
         return false;
 
-    // Simulate move for check
-    auto captured = board.movePiece(start, end);
+    // Use validation methods for proper move testing
+    auto originalPieceAtEnd = board.tryMoveForValidation(start, end);
     bool leavesKingInCheck = board.isKingInCheck(piece->getColor());
+    
     if (leavesKingInCheck) {
-        // Undo move
-        board.movePiece(end, start);
-        board.setPiece(end, std::move(captured));
+        // Undo the validation move
+        board.revertValidationMove(start, end, std::move(originalPieceAtEnd));
         return false;
     }
+
+    // If move is valid, revert validation and make actual move
+    board.revertValidationMove(start, end, std::move(originalPieceAtEnd));
+    
+    // Make the actual move
+    auto captured = board.movePiece(start, end);
 
     // Handle promotion
     if (piece->getType() == PieceType::PAWN &&
@@ -113,11 +134,11 @@ bool Game::canPlayerMakeAnyLegalMove(Player* player) {
                         Position start(r, c);
                         Position end(r2, c2);
                         if (piece->isValidMove(start, end, board)) {
-                            // Try move and see if king is left in check
-                            auto captured = board.movePiece(start, end);
+                            // Use validation methods to test the move
+                            auto originalPieceAtEnd = board.tryMoveForValidation(start, end);
                             bool leavesKingInCheck = board.isKingInCheck(color);
-                            board.movePiece(end, start);
-                            board.setPiece(end, std::move(captured));
+                            board.revertValidationMove(start, end, std::move(originalPieceAtEnd));
+                            
                             if (!leavesKingInCheck)
                                 return true;
                         }
@@ -159,4 +180,4 @@ Player* Game::getRoundWinner() const {
     return nullptr;
 }
 
-} // namespace Hardchess
+} // namespace HardChess

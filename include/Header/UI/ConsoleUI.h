@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-#include "PowerChess/Core/CommonTypes.h" 
+#include "Header/Core/CommonTypes.h"
 
 namespace HardChess {
     class Board;    

@@ -1,7 +1,7 @@
 #include "Header/Core/Rook.h"
 #include "Header/Core/Board.h"
 
-namespace Hardchess {
+namespace HardChess {
 
     Rook::Rook(Color c, Position pos) : Piece(c, PieceType::ROOK, pos) {}
 

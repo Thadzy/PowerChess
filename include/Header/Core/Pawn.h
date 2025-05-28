@@ -1,7 +1,7 @@
 #ifndef HARDCHESS_CORE_PAWN_H
-#define POWERCHESS_CORE_PAWN_H
+#define HARDCHESS_CORE_PAWN_H
 
-#include "PowerChess/Core/Piece.h"
+#include "Header/Core/Piece.h"
 
 namespace HardChess {
 

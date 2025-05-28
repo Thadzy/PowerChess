@@ -1,7 +1,6 @@
 #include "Header/Core/Player.h"
 
-
-namespace Hardchess {
+namespace HardChess {
 
     Player::Player(const std::string& playerName, Color playerColor)
         : name(playerName), color(playerColor), hearts(3), score(0) {}
@@ -15,10 +14,10 @@ namespace Hardchess {
     void Player::incrementScore() {
         score++;
     }
-    
+
     void Player::resetForNewMatch() {
         hearts = 3;
         score = 0;
     }
 
-} // namespace Hardchess
+} // namespace HardChess

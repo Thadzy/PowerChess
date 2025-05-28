@@ -22,7 +22,8 @@ namespace HardChess
         KNIGHT, // Represents a knight piece
         BISHOP, // Represents a bishop piece
         QUEEN,  // Represents a queen piece
-        KING    // Represents a king piece
+        KING,    // Represents a king piece
+        NONE
     };
 
     struct Position

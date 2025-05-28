@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iomanip>
 
-namespace Hardchess {
+namespace HardChess {
 
 void ConsoleUI::displayWelcomeScreen() const {
     std::cout << "\n";
@@ -49,7 +49,7 @@ void ConsoleUI::displayBoard(const Board& board) const {
             if (piece) {
                 std::cout << piece->getSymbol() << " ";
             } else {
-                std::cout << ((r + c) % 2 == 0 ? "." : "#") << " ";
+                std::cout << ((r + c) % 2 == 0 ? "." : "░") << " ";
             }
         }
         std::cout << "| " << 8 - r << "\n";
@@ -248,4 +248,4 @@ void ConsoleUI::pauseForUser() const {
     std::cin.get();
 }
 
-} // namespace Hardchess
+} // namespace HardChess

@@ -1,7 +1,7 @@
 #ifndef HARDCHESS_CORE_ROOK_H
 #define HARDCHESS_CORE_ROOK_H
 
-#include "HardChess/Core/Piece.h"
+#include "Header/Core/Piece.h"
 
 namespace HardChess {
 

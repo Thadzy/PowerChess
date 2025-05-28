@@ -6,7 +6,7 @@
 namespace HardChess {
     class Knight : public Piece {
     public:
-        Knight(Color c, Position pos) : Piece(c, pos) {} // Constructor to initialize Knight piece with color and position
+        Knight(Color c, Position pos); // Constructor to initialize Knight piece with name, color, and position
         char getSymbol() const override; // Get Symbol ex.'N' for Knight
         std::string getName() const override { return "Knight"; } // Get Name of the piece
         std::unique_ptr<Piece> clone() const override; // Create a clone of the Knight piece

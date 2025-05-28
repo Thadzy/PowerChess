@@ -9,17 +9,13 @@
 #include <iostream>
 #include <algorithm>
 
-namespace Hardchess
+namespace HardChess
 {
-
     Board::Board() : grid(8)
     {
-        for (int i = 0; i < 8; ++i)
+        for (auto &row : grid)
         {
-            grid.clear();
-            grid.resize(8);
-            for (auto &row : grid)
-                row.resize(8);
+            row.resize(8);
         }
         initializeBoard();
     }
@@ -27,12 +23,13 @@ namespace Hardchess
     // Deep copy constructor
     Board::Board(const Board &other) : grid(8)
     {
+        for (auto &row : grid)
+        {
+            row.resize(8);
+        }
+        
         for (int i = 0; i < 8; ++i)
         {
-            grid.clear();
-            grid.resize(8);
-            for (auto &row : grid)
-                row.resize(8);
             for (int j = 0; j < 8; ++j)
             {
                 if (other.grid[i][j])
@@ -56,16 +53,26 @@ namespace Hardchess
         {
             return *this;
         }
-        grid.clear();
+        
+        // Clear existing grid
+        for (auto &row : grid)
+        {
+            for (auto &cell : row)
+            {
+                cell.reset();
+            }
+        }
+        
+        // Ensure grid is properly sized
         grid.resize(8);
         for (auto &row : grid)
+        {
             row.resize(8);
+        }
+        
+        // Deep copy pieces
         for (int i = 0; i < 8; ++i)
         {
-            grid.clear();
-            grid.resize(8);
-            for (auto &row : grid)
-                row.resize(8);
             for (int j = 0; j < 8; ++j)
             {
                 if (other.grid[i][j])
@@ -78,6 +85,7 @@ namespace Hardchess
                 }
             }
         }
+        
         whiteKingPos = other.whiteKingPos;
         blackKingPos = other.blackKingPos;
         return *this;
@@ -130,6 +138,11 @@ namespace Hardchess
         whiteKingPos = Position(7, 4);
     }
 
+    void Board::display(ConsoleUI &ui) const
+    {
+        ui.displayBoard(*this);
+    }
+
     Piece *Board::getPiecePtr(Position pos) const
     {
         if (!pos.isValid() || !grid[pos.row][pos.col])
@@ -152,7 +165,9 @@ namespace Hardchess
     {
         if (!pos.isValid())
             return;
+            
         grid[pos.row][pos.col] = std::move(piece);
+        
         if (grid[pos.row][pos.col])
         {
             grid[pos.row][pos.col]->setPosition(pos);
@@ -237,6 +252,7 @@ namespace Hardchess
     {
         if (!square.isValid())
             return false;
+            
         for (int r = 0; r < 8; ++r)
         {
             for (int c = 0; c < 8; ++c)
@@ -316,6 +332,7 @@ namespace Hardchess
                     blackKingPos = start;
             }
         }
+        
         if (grid[end.row][end.col] && grid[end.row][end.col]->getType() == PieceType::KING)
         {
             if (grid[end.row][end.col]->getColor() == Color::WHITE)
@@ -327,14 +344,17 @@ namespace Hardchess
 
     bool Board::promotePawn(Position pawnPos, PieceType promotionType)
     {
-        if (!pawnPos.isValid() || !grid[pawnPos.row][pawnPos.col] || grid[pawnPos.row][pawnPos.col]->getType() != PieceType::PAWN)
+        if (!pawnPos.isValid() || !grid[pawnPos.row][pawnPos.col] || 
+            grid[pawnPos.row][pawnPos.col]->getType() != PieceType::PAWN)
         {
             return false;
         }
+        
         Piece *pawn = grid[pawnPos.row][pawnPos.col].get();
         Color color = pawn->getColor();
 
-        if (!((color == Color::WHITE && pawnPos.row == 0) || (color == Color::BLACK && pawnPos.row == 7)))
+        if (!((color == Color::WHITE && pawnPos.row == 0) || 
+              (color == Color::BLACK && pawnPos.row == 7)))
         {
             return false;
         }
@@ -357,9 +377,10 @@ namespace Hardchess
         default:
             return false;
         }
+        
         newPiece->setHasMoved(true);
         setPiece(pawnPos, std::move(newPiece));
         return true;
     }
 
-} // namespace Hardchess
+} // namespace HardChess

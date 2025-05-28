@@ -11,7 +11,7 @@ namespace HardChess {
         std::string getName() const override { return "King"; } // Get Name of the piece
         std::unique_ptr<Piece> clone() const override; // Create a clone of the King piece
         bool isValidMove(Position start, Position end, const Board& board) const override; // Check if the move is valid for a King piece
-    }
+    };
 }
 
 #endif // POWERCHESS_CORE_KING_H

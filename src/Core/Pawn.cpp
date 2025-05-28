@@ -1,7 +1,7 @@
 #include "Header/Core/Pawn.h"
 #include "Header/Core/Board.h" // For board.getPiece()
 
-namespace Hardchess {
+namespace HardChess {
 
     Pawn::Pawn(Color c, Position pos) : Piece(c, PieceType::PAWN, pos) {}
 

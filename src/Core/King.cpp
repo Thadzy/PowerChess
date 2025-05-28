@@ -2,7 +2,7 @@
 #include "Header/Core/Board.h"
 #include <cmath> // For abs
 
-namespace Hardchess {
+namespace HardChess {
 
     King::King(Color c, Position pos) : Piece(c, PieceType::KING, pos) {}
 
