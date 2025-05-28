@@ -78,15 +78,8 @@ bash
 
    
 bash
-   ./HardChess
+   ./PowerChess
    
-
-
-### Manual Compilation (g++)
-
-bash
-g++ -std=c++11 src/Core/*.cpp src/main.cpp -o HardChess
-./HardChess
 
 ---
 
